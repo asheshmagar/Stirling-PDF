@@ -1,9 +1,28 @@
-use tauri::{RunEvent, WindowEvent, Emitter, Manager};
+use tauri::{Manager, RunEvent, WindowEvent, Emitter};
 
 mod utils;
 mod commands;
+mod state;
 
-use commands::{start_backend, check_backend_health, get_opened_files, clear_opened_files, cleanup_backend, add_opened_file};
+use commands::{
+    add_opened_file,
+    check_backend_health,
+    cleanup_backend,
+    clear_auth_token,
+    clear_opened_files,
+    clear_user_info,
+    get_auth_token,
+    get_connection_config,
+    get_opened_files,
+    get_user_info,
+    is_first_launch,
+    save_auth_token,
+    save_user_info,
+    set_connection_mode,
+    start_backend,
+    test_server_connection,
+};
+use state::connection_state::AppConnectionState;
 use utils::{add_log, get_tauri_logs};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -11,6 +30,8 @@ pub fn run() {
   tauri::Builder::default()
     .plugin(tauri_plugin_shell::init())
     .plugin(tauri_plugin_fs::init())
+    .plugin(tauri_plugin_store::Builder::new().build())
+    .manage(AppConnectionState::default())
     .plugin(tauri_plugin_single_instance::init(|app, args, _cwd| {
       // This callback runs when a second instance tries to start
       add_log(format!("📂 Second instance detected with args: {:?}", args));
@@ -39,7 +60,23 @@ pub fn run() {
       add_log("🔍 DEBUG: Setup completed".to_string());
       Ok(())
     })
-    .invoke_handler(tauri::generate_handler![start_backend, check_backend_health, get_opened_files, clear_opened_files, get_tauri_logs])
+    .invoke_handler(tauri::generate_handler![
+      start_backend,
+      check_backend_health,
+      get_opened_files,
+      clear_opened_files,
+      get_tauri_logs,
+      get_connection_config,
+      set_connection_mode,
+      test_server_connection,
+      is_first_launch,
+      save_auth_token,
+      get_auth_token,
+      clear_auth_token,
+      save_user_info,
+      get_user_info,
+      clear_user_info,
+    ])
     .build(tauri::generate_context!())
     .expect("error while building tauri application")
     .run(|app_handle, event| {
